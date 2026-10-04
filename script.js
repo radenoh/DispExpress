@@ -1,37 +1,26 @@
-document.documentElement.classList.add('js-motion');
-
 const menuToggle = document.querySelector('.menu-toggle');
 const mainNav = document.querySelector('.main-nav');
 const header = document.querySelector('.site-header');
 const applicationForm = document.querySelector('.application-form');
-const revealSelector = [
-  '.hero-copy', '.hero-art', '.problem-grid', '.technology .section-heading',
-  '.tech-intro', '.tech-card', '.human-note', '.services .section-heading',
-  '.service-card', '.process-intro', '.step', '.carrier-copy', '.carrier-visual',
-  '.fleet-visual', '.fleet-copy', '.vision-heading', '.vision-copy',
-  '.why .section-heading', '.why-grid article', '.approach-grid > div',
-  '.equipment-heading', '.equipment-grid article', '.difference-inner > *',
-  '.cta-inner > div', '.about-grid > div', '.faq-intro', '.faq-list details',
-  '.final-cta-inner > div', '.application-copy', '.application-form'
-].join(', ');
-const revealElements = document.querySelectorAll(revealSelector);
+
+const revealGroups = [
+  { selector: '.hero-copy, .section-heading, .technology-copy, .about-grid > div, .faq-intro, .application-copy', style: 'up' },
+  { selector: '.hero-art, .carrier-visual, .fleet-visual, .equipment-grid article, .ai-dashboard', style: 'scale' },
+  { selector: '.service-card, .process-step, .proof-strip-inner > span, .faq-list details, .final-cta-inner > div, .application-form', style: 'up' },
+  { selector: '.carrier-copy, .fleet-copy', style: 'left' }
+];
+const revealElements = revealGroups.flatMap(({ selector }) => [...document.querySelectorAll(selector)]);
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-revealElements.forEach((element, index) => {
-  let revealStyle = 'up';
+if (revealElements.length && !prefersReducedMotion && 'IntersectionObserver' in window) {
+  document.documentElement.classList.add('js-motion');
 
-  if (element.matches('.hero-art, .carrier-visual, .fleet-visual, .equipment-grid article')) revealStyle = 'scale';
-  else if (element.matches('.problem-grid, .process-intro, .carrier-copy, .vision-heading, .faq-intro, .application-copy')) revealStyle = 'left';
-  else if (element.matches('.problem-copy, .steps, .fleet-copy, .vision-copy, .faq-list, .application-form')) revealStyle = 'right';
-  else if (element.matches('.difference-inner > *, .human-note')) revealStyle = 'blur';
+  revealElements.forEach((element, index) => {
+    const group = revealGroups.find(({ selector }) => element.matches(selector));
+    element.dataset.reveal = group?.style ?? 'up';
+    element.style.setProperty('--reveal-delay', `${(index % 4) * 65}ms`);
+  });
 
-  element.dataset.reveal = revealStyle;
-  element.style.setProperty('--reveal-delay', `${(index % 4) * 65}ms`);
-});
-
-if (prefersReducedMotion || !('IntersectionObserver' in window)) {
-  revealElements.forEach((element) => element.classList.add('is-visible'));
-} else {
   const revealObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
@@ -43,52 +32,60 @@ if (prefersReducedMotion || !('IntersectionObserver' in window)) {
   revealElements.forEach((element) => revealObserver.observe(element));
 }
 
-const updateHeader = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
-updateHeader();
-window.addEventListener('scroll', updateHeader, { passive: true });
+if (header) {
+  const updateHeader = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
+  updateHeader();
+  window.addEventListener('scroll', updateHeader, { passive: true });
+}
 
-menuToggle.addEventListener('click', () => {
-  const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
-  menuToggle.setAttribute('aria-expanded', String(!isOpen));
-  mainNav.classList.toggle('is-open', !isOpen);
-});
-
-mainNav.querySelectorAll('a').forEach((link) => {
-  link.addEventListener('click', () => {
+if (menuToggle && mainNav) {
+  const closeMenu = () => {
     menuToggle.setAttribute('aria-expanded', 'false');
     mainNav.classList.remove('is-open');
+  };
+
+  menuToggle.addEventListener('click', () => {
+    const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+    menuToggle.setAttribute('aria-expanded', String(!isOpen));
+    mainNav.classList.toggle('is-open', !isOpen);
   });
-});
 
-document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape' || menuToggle.getAttribute('aria-expanded') !== 'true') return;
-  menuToggle.setAttribute('aria-expanded', 'false');
-  mainNav.classList.remove('is-open');
-  menuToggle.focus();
-});
+  mainNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || menuToggle.getAttribute('aria-expanded') !== 'true') return;
+    closeMenu();
+    menuToggle.focus();
+  });
+}
 
-applicationForm.addEventListener('invalid', () => {
-  applicationForm.classList.add('is-invalid');
-}, true);
-
-applicationForm.addEventListener('input', () => {
-  if (applicationForm.checkValidity()) applicationForm.classList.remove('is-invalid');
-});
-
-applicationForm.addEventListener('submit', (event) => {
-  if (!applicationForm.checkValidity()) {
-    event.preventDefault();
+if (applicationForm) {
+  applicationForm.addEventListener('invalid', () => {
     applicationForm.classList.add('is-invalid');
-    return;
-  }
+  }, true);
 
-  const status = document.createElement('p');
-  status.className = 'form-status';
-  status.setAttribute('role', 'status');
-  status.dataset.state = 'success';
-  status.textContent = 'Your email app will open with your application details ready to send.';
-  applicationForm.querySelector('.form-status')?.remove();
-  applicationForm.querySelector('.form-submit').append(status);
-});
+  applicationForm.addEventListener('input', () => {
+    if (applicationForm.checkValidity()) applicationForm.classList.remove('is-invalid');
+  });
 
-document.getElementById('year').textContent = new Date().getFullYear();
+  applicationForm.addEventListener('submit', (event) => {
+    if (!applicationForm.checkValidity()) {
+      event.preventDefault();
+      applicationForm.classList.add('is-invalid');
+      return;
+    }
+
+    const submitArea = applicationForm.querySelector('.form-submit');
+    if (!submitArea) return;
+
+    applicationForm.querySelector('.form-status')?.remove();
+    const status = document.createElement('p');
+    status.className = 'form-status';
+    status.setAttribute('role', 'status');
+    status.dataset.state = 'success';
+    status.textContent = 'Your email app will open with your application details ready to send.';
+    submitArea.append(status);
+  });
+}
+
+const year = document.getElementById('year');
+if (year) year.textContent = new Date().getFullYear();

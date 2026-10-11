@@ -2,12 +2,21 @@ const menuToggle = document.querySelector('.menu-toggle');
 const mainNav = document.querySelector('.main-nav');
 const header = document.querySelector('.site-header');
 const applicationForm = document.querySelector('.application-form');
+const packageSelect = applicationForm?.querySelector('select[name="package"]');
+
+if (packageSelect) {
+  document.querySelectorAll('[data-package]').forEach((packageLink) => {
+    packageLink.addEventListener('click', () => {
+      packageSelect.value = packageLink.dataset.package;
+    });
+  });
+}
 
 const revealGroups = [
   { selector: '.hero-copy, .section-heading, .technology-copy, .about-grid > div, .faq-intro, .application-copy', style: 'up' },
   { selector: '.hero-art, .carrier-visual, .fleet-visual, .equipment-grid article, .ai-dashboard', style: 'scale' },
   { selector: '.pricing-card', style: 'up' },
-  { selector: '.service-card, .process-step, .proof-strip-inner > span, .faq-list details, .final-cta-inner > div, .application-form', style: 'up' },
+  { selector: '.service-card, .process-step, .proof-strip-inner > span, .faq-list details, .final-cta-inner > div, .application-form, .careers-copy, .careers-contact-card', style: 'up' },
   { selector: '.carrier-copy, .fleet-copy', style: 'left' }
 ];
 const revealElements = revealGroups.flatMap(({ selector }) => [...document.querySelectorAll(selector)]);
@@ -58,6 +67,62 @@ if (menuToggle && mainNav) {
     menuToggle.focus();
   });
 }
+
+document.querySelectorAll('.faq-list details').forEach((details) => {
+  const summary = details.querySelector('summary');
+  const answer = details.querySelector('.faq-answer');
+  if (!summary || !answer) return;
+
+  summary.setAttribute('aria-expanded', String(details.open));
+  answer.style.maxHeight = details.open ? `${answer.scrollHeight}px` : '0px';
+  let closeTimer;
+  let finishClose;
+
+  summary.addEventListener('click', (event) => {
+    event.preventDefault();
+
+    if (answer.dataset.closing === 'true') {
+      clearTimeout(closeTimer);
+      answer.removeEventListener('transitionend', finishClose);
+      finishClose = null;
+      delete answer.dataset.closing;
+      summary.setAttribute('aria-expanded', 'true');
+      answer.style.maxHeight = `${answer.scrollHeight}px`;
+      return;
+    }
+
+    if (details.open) {
+      answer.style.maxHeight = `${answer.scrollHeight}px`;
+      answer.offsetHeight;
+      answer.dataset.closing = 'true';
+      summary.setAttribute('aria-expanded', 'false');
+      requestAnimationFrame(() => { answer.style.maxHeight = '0px'; });
+
+      finishClose = (transitionEvent) => {
+        if (transitionEvent && transitionEvent.propertyName !== 'max-height') return;
+        clearTimeout(closeTimer);
+        details.open = false;
+        delete answer.dataset.closing;
+        answer.removeEventListener('transitionend', finishClose);
+        finishClose = null;
+      };
+      answer.addEventListener('transitionend', finishClose);
+      closeTimer = setTimeout(() => finishClose(), 450);
+      return;
+    }
+
+    details.open = true;
+    answer.style.maxHeight = '0px';
+    summary.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(() => { answer.style.maxHeight = `${answer.scrollHeight}px`; });
+  });
+
+  answer.addEventListener('transitionend', (event) => {
+    if (event.propertyName === 'max-height' && details.open && answer.dataset.closing !== 'true') {
+      answer.style.maxHeight = `${answer.scrollHeight}px`;
+    }
+  });
+});
 
 if (applicationForm) {
   applicationForm.addEventListener('invalid', () => {

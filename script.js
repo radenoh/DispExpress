@@ -6,6 +6,7 @@ const applicationForm = document.querySelector('.application-form');
 const revealGroups = [
   { selector: '.hero-copy, .section-heading, .technology-copy, .about-grid > div, .faq-intro, .application-copy', style: 'up' },
   { selector: '.hero-art, .carrier-visual, .fleet-visual, .equipment-grid article, .ai-dashboard', style: 'scale' },
+  { selector: '.pricing-card', style: 'up' },
   { selector: '.service-card, .process-step, .proof-strip-inner > span, .faq-list details, .final-cta-inner > div, .application-form', style: 'up' },
   { selector: '.carrier-copy, .fleet-copy', style: 'left' }
 ];
